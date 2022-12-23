@@ -7,7 +7,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node .",
     "prep": "tsc",
-    "postprep": "node build/example.js",
+    "postprep": "node build/example.js && git add . && git commit -m 'next'",
     "version": "git add -A src",
     "postversion": "git push && git push --tags"
   },

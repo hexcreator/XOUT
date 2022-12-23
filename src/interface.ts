@@ -130,5 +130,6 @@ export default
     blue: colors.blue,
     green: colors.green,
     ran: colors.random,
+    colors
 
 }
