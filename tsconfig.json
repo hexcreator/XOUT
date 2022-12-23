@@ -1,0 +1,19 @@
+{
+	"compilerOptions": {
+		"allowJs": true,
+		"checkJs": false,
+		"outDir": "build",
+		"target": "es5",
+		"allowSyntheticDefaultImports": true,
+		"esModuleInterop": true,
+		"moduleResolution": "node",
+		"jsx": "react",
+		"module": "commonjs",
+		"baseUrl": ".",
+		"paths": {},
+		"experimentalDecorators": true,
+		"declaration": true
+	},
+	"include": ["src/**/*", "out/**/*",  "in/**/*", "libs/**/*"],
+	"exclude": ["node_modules/"]
+}

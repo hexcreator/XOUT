@@ -1,0 +1,10 @@
+# ignore single files
+.env
+.env.encrypted
+prod.env
+
+# ignore entire directories
+/node_modules/
+build/
+in/
+out/
