@@ -1,6 +1,6 @@
 {
   "name": "xout",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "A simple logger with useful functions such as a JSON outputter, session output files, coloring, and more.",
   "main": "build/interface.js",
   "scripts": {
