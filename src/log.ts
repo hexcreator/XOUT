@@ -3,44 +3,49 @@
 import colors from './colors';
 import * as fs from 'fs';
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
 const isProd = process.env.NODE_ENV === 'production';
 
-var config_set = false;
+////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////
 
 let config = 
 {
-    include_parent: true, // experimental+unstable if true
+    set: false,
+    include_parent: false, // experimental+unstable if true
     file_color: null,
     func_color: null,
-    line_color: null
+    line_color: null,
+    output_file_settings: 
+    {
+        reg: { on: true, path: 'out/logs/logs.txt', stream: null },
+        error: { on: true, path: 'out/logs/errors.txt', stream: null },
+        debug: { on: true, path: 'out/logs/debug.txt', stream: null },
+    },
+    formatter: null
 }
 
-const formatter = new Intl.DateTimeFormat("en-US" , {
-    timeStyle: "medium",
-    dateStyle: "short"
-});
-
-if (!isProd) 
-{
-    var stream = fs.createWriteStream(`out/logs/logs.txt`, {flags:'a'});;
-}
+////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
  * Convenient log.
  * @param input Anything.
- * @param status Status marker. -1 = error, 1 = success, 0 = baking. Optional. 
+ * @param status Status marker. -1 = error, 1 = success, 0 = baking. See status docs for more. Optional. 
  * @param tabbed Tabbed mode. Tab mode prints the line in an indented fashion with no prefixes. Defaults to false.
+ * @param headless Print without functions.
  */
 export default function log(input: any, status: number = null, tabbed: boolean = false, headless: boolean = false)
 {
 
-    if (!config_set) init_config();
+    if (!config.set) init_config();
     if (tabbed) return tabbedlog(input);
-    let start = Date.now();
 
     let caller = stack();
     let time = new Date();
-    let time_s = `[${colors.cyan(formatter.format(time))}] `;
+    let time_s = `[${colors.cyan(config.formatter.format(time))}] `;
     let caller_file = colors.colored(caller.file, config.file_color);
     let caller_func = colors.colored(`${caller.function}()`, config.func_color);
 
@@ -52,24 +57,52 @@ export default function log(input: any, status: number = null, tabbed: boolean =
     let caller_s = `[${caller_file}${double_semi}${caller_func}${semi}${line}] `;
     caller_s += status_s;
     let grandcaller_s = `[${colors.green(caller.pfile)}${colors.blue('::')}${colors.magenta(`${caller.pfunction}()${colors.blue(':')}${colors.green(`L_${caller.pline}`)}`)}] `;
-    if (caller.pfile.includes('void')) grandcaller_s = `[${colors.red('void')}] `;
-    let header = (headless) ? '' : (config.include_parent) ? `↓ ${time_s}${grandcaller_s}${caller_s}\n` : `↓ ${time_s}${caller_s}\n`;
+    if (caller.pfile?.includes('void')) grandcaller_s = `[${colors.red('void')}] `;
+    let header = (headless) ? '' : (config.include_parent) ? `${time_s}${grandcaller_s}${caller_s}\n` : `${time_s}${caller_s}\n`;
     let final_s = (config.include_parent) ? `${header}${input}\n` : `${header}${input}\n`;
     
     let decolored = input.replace( /\u001b[^m]*?m/g, '');
-    let stream_string = `[${formatter.format(time)}] [${caller.file}::${caller.function}():L_${caller.line}]\n${decolored}\n\n`;
-    if (config.include_parent) stream_string = `↓ [${formatter.format(time)}] [${caller.pfile}::${caller.pfunction}():L_${caller.pline}] [${caller.file}::${caller.function}():L_${caller.line}]\n${decolored}\n\n`;
+    let stream_string = `[${config.formatter.format(time)}] [${caller.file}::${caller.function}():L_${caller.line}]\n${decolored}\n\n`;
+    if (config.include_parent) stream_string = `↓ [${config.formatter.format(time)}] [${caller.pfile}::${caller.pfunction}():L_${caller.pline}] [${caller.file}::${caller.function}():L_${caller.line}]\n${decolored}\n\n`;
 
     if (!isProd) 
     {
         console.log(final_s);
-        stream.write(stream_string);
+        append(stream_string, status);
     } else 
     {
         let ds = `${input}\n`;
         console.log(ds)
     }
 }
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+function append(ins: string, status: number = 0)
+{
+    if (status == -1) config.output_file_settings.error.stream.write(ins);
+    else if (status == 2) config.output_file_settings.debug.stream.write(ins);
+    else config.output_file_settings.reg.stream.write(ins);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+function init_config()
+{
+    config.set = true;
+    config.file_color = colors.random_color([colors.FgCyan, colors.FgBlue]);
+    config.func_color = colors.random_color([colors.FgCyan, colors.FgBlue, config.file_color]);
+    config.line_color = colors.random_color([colors.FgCyan, colors.FgBlue, config.file_color, config.func_color]);
+    config.formatter = new Intl.DateTimeFormat("en-US" , { timeStyle: "medium", dateStyle: "short"})
+    if (!isProd) config.output_file_settings.reg.stream = fs.createWriteStream(config.output_file_settings.reg.path, {flags:'a'});
+    if (!isProd) config.output_file_settings.error.stream = fs.createWriteStream(config.output_file_settings.error.path, {flags:'a'});
+    if (!isProd) config.output_file_settings.debug.stream = fs.createWriteStream(config.output_file_settings.debug.path, {flags:'a'});
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////
 
 function tabbedlog(input: any)
 {
@@ -81,20 +114,15 @@ function tabbedlog(input: any)
     {
         // Dev
         console.log(tabbed_str_colorized);
-        stream.write(tabbed_str);
+        append(tabbed_str);
     } 
     else console.log(tabbed_str_colorized);
     return;
 
 }
 
-function init_config()
-{
-    config.file_color = colors.random_color([colors.FgCyan, colors.FgBlue]);
-    config.func_color = colors.random_color([colors.FgCyan, colors.FgBlue, config.file_color]);
-    config.line_color = colors.random_color([colors.FgCyan, colors.FgBlue, config.file_color, config.func_color]);
-    config_set = true;
-}
+////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////
 
 function stack()
 {
@@ -126,6 +154,9 @@ function stack()
 
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
 function get_parent_frame(frames: any[])
 {
 
@@ -141,6 +172,9 @@ function get_parent_frame(frames: any[])
     return voidf;
 
 }
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////
 
 function framestr(frame: string)
 {
@@ -167,17 +201,24 @@ function framestr(frame: string)
 
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
 function interpret_status(n: number)
 {
 
     switch (n)
     {
+        case -2:
+            return `[${colors.yellow('warn')}] `;
         case -1:
             return `[${colors.red('error')}] `;
         case 0:
             return `[${colors.yellow('baking')}] `;
         case 1:
             return `[${colors.green('success')}] `;
+        case 2:
+            return `[${colors.random('debug')}] `;
         default:
             return '';
     }
