@@ -8,6 +8,7 @@
     "start": "node .",
     "prep": "tsc",
     "postprep": "node build/example.js && git add . && git commit -m 'next'",
+    "preversion": "tsc",
     "version": "git add -A src",
     "postversion": "git push && git push --tags"
   },

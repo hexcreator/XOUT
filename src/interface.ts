@@ -81,7 +81,8 @@ export let types = (title: string, input: object, status: STATUS = null, tabbed:
 }
 
 /**
- * In-function progress debug line. Always tabbed.
+ * In-function progress debug line. Always tabbed by one tab and headless. 
+ * This is usually helpful after you use log at least once earler in the function.
  * @param input Any input.
  * @param status Status number.
  */
@@ -91,7 +92,7 @@ export let inf = (input: any, status: STATUS = 0) =>
     if (status == 1) color_function = colors.green;
     else if (status == -1) color_function = colors.red;
     let inp = (color_function == null) ? input : color_function(input);
-    log(inp, null, true);
+    log(`\t${inp}`, null, false, true);
 }
 
 //////////////////////////////////////////////////////////////////////////////
